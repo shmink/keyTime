@@ -13,6 +13,7 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
@@ -140,22 +141,49 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 	return ret;
 }
 
+// void recordTime(int startORstop) {
+// 	time_t *start = malloc(sizeof(time_t));
+// 	time_t end;
+	
+// 	if(startORstop == 1) {
+// 		// gettimeofday(&stop, NULL);
+// 		printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
+// 		// printf("%lu\n", stop.tv_usec - start.tv_usec);
+// 		end = clock();
+// 		long final = (end-(long)start)/CLOCKS_PER_SEC;
+// 		printf("%lu\n", final);
+// 		free(start);
+// 	}
+
+
+// 	if(startORstop == 0) {
+// 		//gettimeofday(&start, NULL);
+// 		*start = clock();
+// 	}
+// }
+
 /**
 	sendMsg function is made to send a message to the CAN network
 	@param canID - takes a string in the format of CANID#DATA
 	@param s - takes an int which is the socket to send the data to
 */
-int sendMsg(char *IDandDATA, int s) {
+void *sendMsg(void *ptr) {
+	printf("running in sendMsg\n");
+	//recordTime(0);
+	//char *IDandDATA, int s
+	struct sendIDargsStruct *sendStruct = ptr;
+	char *sID = sendStruct->sendIDinStruct;
+	int s = sendStruct->sock;
 
 	int reqMTU;					// maximum transfer unit
 	int nbytes;					// total bytes
 	struct canfd_frame frame;		// pack data into this frame
 
 	// Parse the CAN data and check it's the right length
-	reqMTU = parseFrame(IDandDATA, &frame);
+	reqMTU = parseFrame(sID, &frame);
 	if(!reqMTU) {
 		fprintf(stderr, "Bad CAN format.\n");
-		return 1;
+		return (void *)1;
 	}
 
 	// Write the data to the frame and send
@@ -166,7 +194,7 @@ int sendMsg(char *IDandDATA, int s) {
 		frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 	
-	return 0;
+	//return 0;
 }
 
 /**
@@ -175,10 +203,12 @@ int sendMsg(char *IDandDATA, int s) {
 	@param s - takes an int which the socket where CAN messages will come from
 */
 void *receiveMsg(void *ptr) {
+	printf("running in receiveMsg\n");
 	//int rID, int s
 	struct receiveIDargsStruct *receiveStruct = ptr;
-	int rID = ptr.receiveIDinStruct;
-	int s = ptr.sock;
+	int rID = receiveStruct->receiveIDinStruct;
+	int s = receiveStruct->sock;
+
 	struct can_frame frame;
 	int loop = 1;
 
@@ -189,12 +219,12 @@ void *receiveMsg(void *ptr) {
 				frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
 				frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 			loop = 0;
+			//recordTime(1);
 		}
 	}
 
-	return;
+	//return 0;
 }
-
 
 int main(int argc, char *argv[]) {
 
@@ -236,20 +266,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Passing multiple arguments with pthread is awkward
-	
-	// struct sendIDargsStruct {
-	// 	char *sendIDinStruct;
-	// 	int sock;
-	// };
-
-	// struct receiveIDargsStruct {
-	// 	int receiveIDinStruct;
-	// 	int sock;
-	// };
-
-	// struct sendIDargsStruct sendStruct;
-	// struct receiveIDargsStruct receiveStruct;
-
 	sendStruct.sendIDinStruct = sendID;
 	sendStruct.sock = soc;
 
@@ -258,15 +274,18 @@ int main(int argc, char *argv[]) {
 
 
 	//Create threads as both functions need to be running at the same time.
-	pthread_t thread1, thread2; //Don't forget the -pthread flag when compiling with gcc
+	pthread_t threadSEND, threadREC; //Don't forget the -pthread flag when compiling with gcc
 
 	// make threads
-    pthread_create(&thread1, NULL, receiveMsg, &receiveStruct);
-    pthread_create(&thread2, NULL, sendMsg, &sendStruct);
+	//pthread_create(&threadTIME, NULL, recordTime, 2);
+    pthread_create(&threadSEND, NULL, sendMsg, &sendStruct);
+    sleep(5);
+    pthread_create(&threadREC, NULL, receiveMsg, &receiveStruct);
+    
 
     // wait for them to finish
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL); 
+    pthread_join(threadREC, NULL);
+    pthread_join(threadSEND, NULL); 
 
 
 	//sendMsg(sendID, soc); 				// Sent a message
