@@ -29,10 +29,12 @@
 /*
 	[X] function for sending 
 	[X] function for recieving
-	[ ] main function (args)
-	[ ] multi thread send and receive functions, maybe timer?
+	[X] main function (args)
+	[X] multi thread send and receive functions, maybe timer?
 	[ ] function for timing
 */
+
+time_t start, end;
 
 void printUsage(char *prg) {
 	fprintf(stderr, "Usage: %s [interface] [sending ID#data] [receive ID]\n\n", prg);
@@ -141,24 +143,29 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 	return ret;
 }
 
-void recordTime(int startORstop) {
-	time_t *start = malloc(sizeof(time_t));
-	time_t end;
+void *recordTime(int startORstop) {
+	// int *startORstop = (int)timer;
+
+	// time_t *start = malloc(sizeof(time_t));
+	// // time_t start;
+	// time_t *end = malloc(sizeof(time_t));
 	
 	if(startORstop == 1) {
 		// gettimeofday(&stop, NULL);
 		printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
 		// printf("%lu\n", stop.tv_usec - start.tv_usec);
 		end = clock();
-		long final = (end-(long)start)/CLOCKS_PER_SEC;
-		printf("%lu\n", final);
-		free(start);
+		double final = (end-start)/CLOCKS_PER_SEC;
+		printf("%f\n", final);
+
+		// free(start);
+		// free(end);
 	}
 
 
 	if(startORstop == 0) {
 		//gettimeofday(&start, NULL);
-		*start = clock();
+		start = clock();
 	}
 }
 
@@ -274,19 +281,21 @@ int main(int argc, char *argv[]) {
 
 
 	//Create threads as both functions need to be running at the same time.
-	pthread_t threadSEND, threadREC; //Don't forget the -pthread flag when compiling with gcc
+	pthread_t threadSEND, threadREC, threadTIME; //Don't forget the -pthread flag when compiling with gcc
+
 
 	// make threads
-	//pthread_create(&threadTIME, NULL, recordTime, 2);
-    pthread_create(&threadSEND, NULL, sendMsg, &sendStruct);
-    sleep(5);
+	//pthread_create(&threadTIME, NULL, recordTime, "2");
     pthread_create(&threadREC, NULL, receiveMsg, &receiveStruct);
-    
+    sleep(3);
+    pthread_create(&threadSEND, NULL, sendMsg, &sendStruct);
+
+
 
     // wait for them to finish
     pthread_join(threadREC, NULL);
     pthread_join(threadSEND, NULL); 
-
+    //pthread_join(threadTIME, NULL);
 
 	//sendMsg(sendID, soc); 				// Sent a message
 
