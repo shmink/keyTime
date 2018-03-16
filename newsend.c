@@ -141,26 +141,26 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 	return ret;
 }
 
-// void recordTime(int startORstop) {
-// 	time_t *start = malloc(sizeof(time_t));
-// 	time_t end;
+void recordTime(int startORstop) {
+	time_t *start = malloc(sizeof(time_t));
+	time_t end;
 	
-// 	if(startORstop == 1) {
-// 		// gettimeofday(&stop, NULL);
-// 		printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
-// 		// printf("%lu\n", stop.tv_usec - start.tv_usec);
-// 		end = clock();
-// 		long final = (end-(long)start)/CLOCKS_PER_SEC;
-// 		printf("%lu\n", final);
-// 		free(start);
-// 	}
+	if(startORstop == 1) {
+		// gettimeofday(&stop, NULL);
+		printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
+		// printf("%lu\n", stop.tv_usec - start.tv_usec);
+		end = clock();
+		long final = (end-(long)start)/CLOCKS_PER_SEC;
+		printf("%lu\n", final);
+		free(start);
+	}
 
 
-// 	if(startORstop == 0) {
-// 		//gettimeofday(&start, NULL);
-// 		*start = clock();
-// 	}
-// }
+	if(startORstop == 0) {
+		//gettimeofday(&start, NULL);
+		*start = clock();
+	}
+}
 
 /**
 	sendMsg function is made to send a message to the CAN network
@@ -169,8 +169,8 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 */
 void *sendMsg(void *ptr) {
 	printf("running in sendMsg\n");
-	//recordTime(0);
-	//char *IDandDATA, int s;
+	recordTime(0);
+	//char *IDandDATA, int s
 	struct sendIDargsStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
 	int s = sendStruct->sock;
@@ -219,7 +219,7 @@ void *receiveMsg(void *ptr) {
 				frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
 				frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 			loop = 0;
-			//recordTime(1);
+			recordTime(1);
 		}
 	}
 
