@@ -18,6 +18,8 @@
 #include <linux/can/raw.h>
 #include <linux/can/error.h>
 
+#include "cSAR.h"
+
 #define CANID_DELIM '#'
 #define DATA_SEPERATOR '.'
 
@@ -172,8 +174,11 @@ int sendMsg(char *IDandDATA, int s) {
 	@param rID - takes an (hexadecimal) int as the ID you want to listen from
 	@param s - takes an int which the socket where CAN messages will come from
 */
-int receiveMsg(int rID, int s) {
-
+void *receiveMsg(void *ptr) {
+	//int rID, int s
+	struct receiveIDargsStruct *receiveStruct = ptr;
+	int rID = ptr.receiveIDinStruct;
+	int s = ptr.sock;
 	struct can_frame frame;
 	int loop = 1;
 
@@ -187,7 +192,7 @@ int receiveMsg(int rID, int s) {
 		}
 	}
 
-	return 0;
+	return;
 }
 
 
@@ -232,18 +237,18 @@ int main(int argc, char *argv[]) {
 
 	// Passing multiple arguments with pthread is awkward
 	
-	struct sendIDargsStruct {
-		char *sendIDinStruct;
-		int sock;
-	};
+	// struct sendIDargsStruct {
+	// 	char *sendIDinStruct;
+	// 	int sock;
+	// };
 
-	struct receiveIDargsStruct {
-		int receiveIDinStruct;
-		int sock;
-	};
+	// struct receiveIDargsStruct {
+	// 	int receiveIDinStruct;
+	// 	int sock;
+	// };
 
-	struct sendIDargsStruct sendStruct;
-	struct receiveIDargsStruct receiveStruct;
+	// struct sendIDargsStruct sendStruct;
+	// struct receiveIDargsStruct receiveStruct;
 
 	sendStruct.sendIDinStruct = sendID;
 	sendStruct.sock = soc;
@@ -256,8 +261,8 @@ int main(int argc, char *argv[]) {
 	pthread_t thread1, thread2; //Don't forget the -pthread flag when compiling with gcc
 
 	// make threads
-    pthread_create(&thread1, NULL, receiveMsg, (void *) &receiveStruct);
-    pthread_create(&thread2, NULL, sendMsg, (void *) &sendStruct);
+    pthread_create(&thread1, NULL, receiveMsg, &receiveStruct);
+    pthread_create(&thread2, NULL, sendMsg, &sendStruct);
 
     // wait for them to finish
     pthread_join(thread1, NULL);
