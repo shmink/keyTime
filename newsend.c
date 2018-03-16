@@ -170,7 +170,7 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 void *sendMsg(void *ptr) {
 	printf("running in sendMsg\n");
 	//recordTime(0);
-	//char *IDandDATA, int s
+	//char *IDandDATA, int s;
 	struct sendIDargsStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
 	int s = sendStruct->sock;
