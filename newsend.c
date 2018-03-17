@@ -34,7 +34,6 @@
 	[ ] function for timing
 */
 
-time_t start, end;
 
 void printUsage(char *prg) {
 	fprintf(stderr, "Usage: %s [interface] [sending ID#data] [receive ID]\n\n", prg);
@@ -143,31 +142,33 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 	return ret;
 }
 
-void *recordTime(int startORstop) {
-	// int *startORstop = (int)timer;
-
-	// time_t *start = malloc(sizeof(time_t));
-	// // time_t start;
-	// time_t *end = malloc(sizeof(time_t));
+// time_t recordTime(int startORstop) {
+// 	//time_t start, end;
+// 	//maybe set start as a static variable
+// 	//if(start > 0) {
 	
-	if(startORstop == 1) {
-		// gettimeofday(&stop, NULL);
-		printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
-		// printf("%lu\n", stop.tv_usec - start.tv_usec);
-		end = clock();
-		double final = (end-start)/CLOCKS_PER_SEC;
-		printf("%f\n", final);
+// 		if(startORstop == 1) {
+// 			// gettimeofday(&stop, NULL);
+// 			printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
+// 			// printf("%lu\n", stop.tv_usec - start.tv_usec);
+// 			end = clock();
+// 			double final = (end-start)/CLOCKS_PER_SEC;
+// 			printf("%f\n", final);
 
-		// free(start);
-		// free(end);
-	}
+// 			// free(start);
+// 			// free(end);
+// 		}
 
 
-	if(startORstop == 0) {
-		//gettimeofday(&start, NULL);
-		start = clock();
-	}
-}
+// 		if(startORstop == 0) {
+// 			//gettimeofday(&start, NULL);
+// 			*(double *)&start = clock();
+// 			return start;
+// 		}
+// 	//}
+// }
+
+
 
 /**
 	sendMsg function is made to send a message to the CAN network
@@ -176,7 +177,7 @@ void *recordTime(int startORstop) {
 */
 void *sendMsg(void *ptr) {
 	printf("running in sendMsg\n");
-	recordTime(0);
+	//timer(0);
 	//char *IDandDATA, int s
 	struct sendIDargsStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
@@ -202,6 +203,7 @@ void *sendMsg(void *ptr) {
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 	
 	//return 0;
+	timer(sendStruct->beginTime);
 }
 
 /**
@@ -226,7 +228,7 @@ void *receiveMsg(void *ptr) {
 				frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
 				frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 			loop = 0;
-			recordTime(1);
+			timer(receiveStruct->endTime);
 		}
 	}
 
@@ -275,19 +277,30 @@ int main(int argc, char *argv[]) {
 	// Passing multiple arguments with pthread is awkward
 	sendStruct.sendIDinStruct = sendID;
 	sendStruct.sock = soc;
+	sendStruct.beginTime = malloc(sizeof(long)); 
 
 	receiveStruct.receiveIDinStruct = receiveID;
 	receiveStruct.sock = soc;
+	receiveStruct.endTime = malloc(sizeof(long)); 
+
+
+
+	// timer(begin);
+	// //sleep(1);
+	// timer(end);
+
+
+	
 
 
 	//Create threads as both functions need to be running at the same time.
-	pthread_t threadSEND, threadREC, threadTIME; //Don't forget the -pthread flag when compiling with gcc
+	pthread_t threadSEND, threadREC; //Don't forget the -pthread flag when compiling with gcc
 
 
 	// make threads
 	//pthread_create(&threadTIME, NULL, recordTime, "2");
     pthread_create(&threadREC, NULL, receiveMsg, &receiveStruct);
-    sleep(3);
+    //sleep(3);
     pthread_create(&threadSEND, NULL, sendMsg, &sendStruct);
 
 
@@ -297,10 +310,18 @@ int main(int argc, char *argv[]) {
     pthread_join(threadSEND, NULL); 
     //pthread_join(threadTIME, NULL);
 
-	//sendMsg(sendID, soc); 				// Sent a message
+	long duration = *(receiveStruct.endTime)-*(sendStruct.beginTime);
 
-	//receiveMsg(receiveID, soc); 		// Receive a message
+	double durSec = ((double)duration)/1e9;
 
-	//close(soc); // Close socket as program is about to end.
+	printf("begin = %.9ld\n", *(sendStruct.beginTime));
+	printf("end = %.9ld\n", *(receiveStruct.endTime));
+	printf("duration = %.9ld\n", duration);
+	printf("duration = %.8f\n",durSec);
+
+	
+	free(receiveStruct.endTime);
+	free(sendStruct.beginTime);
+
 	return 0;
 }

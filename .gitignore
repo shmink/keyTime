@@ -1,3 +1,6 @@
 txn427/
 papers/
 content.zip
+.idea*
+CMake*
+cmake-build-debug/
