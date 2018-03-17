@@ -31,10 +31,13 @@
 	[X] function for recieving
 	[X] main function (args)
 	[X] multi thread send and receive functions, maybe timer?
-	[ ] function for timing
+	[X] function for timing
 */
 
-
+/*
+ *	printUsage function prints how to use the program if there aren't enough arguments passed
+ *	@param prg - string which will be the name of the program shoud it ever change.
+ */
 void printUsage(char *prg) {
 	fprintf(stderr, "Usage: %s [interface] [sending ID#data] [receive ID]\n\n", prg);
 	fprintf(stderr, "%s = CAN send and receive\n", prg);
@@ -45,6 +48,13 @@ void printUsage(char *prg) {
 	fprintf(stderr, "%s can0 18DA40F1#021001 18DAF140\n", prg);
 }
 
+/*
+ * From can-utils, lib.h file.
+ * Returns the decimal value of a given ASCII hex character.
+ *
+ * While 0..9, a..f, A..F are valid ASCII hex characters.
+ * On invalid characters the value 16 is returned for error handling.
+ */
 unsigned char asc2nibble(char c) {
 
 	if ((c >= '0') && (c <= '9'))
@@ -59,6 +69,59 @@ unsigned char asc2nibble(char c) {
 	return 16; /* error */
 }
 
+/*
+ * From can-utils, lib.h file.
+ *
+ * Transfers a valid ASCII string decribing a CAN frame into struct canfd_frame.
+ *
+ * CAN 2.0 frames
+ * - string layout <can_id>#{R{len}|data}
+ * - {data} has 0 to 8 hex-values that can (optionally) be separated by '.'
+ * - {len} can take values from 0 to 8 and can be omitted if zero
+ * - return value on successful parsing: CAN_MTU
+ *
+ * CAN FD frames
+ * - string layout <can_id>##<flags>{data}
+ * - <flags> a single ASCII Hex value (0 .. F) which defines canfd_frame.flags
+ * - {data} has 0 to 64 hex-values that can (optionally) be separated by '.'
+ * - return value on successful parsing: CANFD_MTU
+ *
+ * Return value on detected problems: 0
+ *
+ * <can_id> can have 3 (standard frame format) or 8 (extended frame format)
+ * hexadecimal chars
+ *
+ *
+ * Examples:
+ *
+ * 123# -> standard CAN-Id = 0x123, len = 0
+ * 12345678# -> extended CAN-Id = 0x12345678, len = 0
+ * 123#R -> standard CAN-Id = 0x123, len = 0, RTR-frame
+ * 123#R0 -> standard CAN-Id = 0x123, len = 0, RTR-frame
+ * 123#R7 -> standard CAN-Id = 0x123, len = 7, RTR-frame
+ * 7A1#r -> standard CAN-Id = 0x7A1, len = 0, RTR-frame
+ *
+ * 123#00 -> standard CAN-Id = 0x123, len = 1, data[0] = 0x00
+ * 123#1122334455667788 -> standard CAN-Id = 0x123, len = 8
+ * 123#11.22.33.44.55.66.77.88 -> standard CAN-Id = 0x123, len = 8
+ * 123#11.2233.44556677.88 -> standard CAN-Id = 0x123, len = 8
+ * 32345678#112233 -> error frame with CAN_ERR_FLAG (0x2000000) set
+ *
+ * 123##0112233 -> CAN FD frame standard CAN-Id = 0x123, flags = 0, len = 3
+ * 123##1112233 -> CAN FD frame, flags = CANFD_BRS, len = 3
+ * 123##2112233 -> CAN FD frame, flags = CANFD_ESI, len = 3
+ * 123##3 -> CAN FD frame, flags = (CANFD_ESI | CANFD_BRS), len = 0
+ *     ^^
+ *     CAN FD extension to handle the canfd_frame.flags content
+ *
+ * Simple facts on this compact ASCII CAN frame representation:
+ *
+ * - 3 digits: standard frame format
+ * - 8 digits: extendend frame format OR error frame
+ * - 8 digits with CAN_ERR_FLAG (0x2000000) set: error frame
+ * - an error frame is never a RTR frame
+ * - CAN FD frames do not have a RTR bit
+ */
 int parseFrame(char *cs, struct canfd_frame *cf) {
 	/* documentation see lib.h */
 
@@ -142,50 +205,19 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 	return ret;
 }
 
-// time_t recordTime(int startORstop) {
-// 	//time_t start, end;
-// 	//maybe set start as a static variable
-// 	//if(start > 0) {
-	
-// 		if(startORstop == 1) {
-// 			// gettimeofday(&stop, NULL);
-// 			printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
-// 			// printf("%lu\n", stop.tv_usec - start.tv_usec);
-// 			end = clock();
-// 			double final = (end-start)/CLOCKS_PER_SEC;
-// 			printf("%f\n", final);
-
-// 			// free(start);
-// 			// free(end);
-// 		}
-
-
-// 		if(startORstop == 0) {
-// 			//gettimeofday(&start, NULL);
-// 			*(double *)&start = clock();
-// 			return start;
-// 		}
-// 	//}
-// }
-
-
-
-/**
-	sendMsg function is made to send a message to the CAN network
-	@param canID - takes a string in the format of CANID#DATA
-	@param s - takes an int which is the socket to send the data to
-*/
+/*
+ *	sendMsg function is made to send a message to the CAN network
+ *	@param ptr - a void pointer used to accept structs of data
+ */
 void *sendMsg(void *ptr) {
-	printf("running in sendMsg\n");
-	//timer(0);
-	//char *IDandDATA, int s
+
 	struct sendIDargsStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
 	int s = sendStruct->sock;
 
-	int reqMTU;					// maximum transfer unit
-	int nbytes;					// total bytes
-	struct canfd_frame frame;		// pack data into this frame
+	int reqMTU;						// Maximum transfer unit
+	int nbytes;						// Total bytes
+	struct canfd_frame frame;		// Pack data into this frame
 
 	// Parse the CAN data and check it's the right length
 	reqMTU = parseFrame(sID, &frame);
@@ -197,57 +229,63 @@ void *sendMsg(void *ptr) {
 	// Write the data to the frame and send
 	nbytes = write(s, &frame, reqMTU);
 
+	// Once the data has been sent start the timer
+	timer(sendStruct->beginTime);
+
+	// Print out the information
 	printf("=============" "\x1b[32m" "SENT" "\x1b[0m" "============\n");
 	printf("%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X\n", frame.can_id & 0x1fffffffu, frame.len, // 29 bit CAN ID
 		frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 	
-	//return 0;
-	timer(sendStruct->beginTime);
+	
 }
 
-/**
-	receiveMsg function is made to receive a message from the CAN network
-	@param rID - takes an (hexadecimal) int as the ID you want to listen from
-	@param s - takes an int which the socket where CAN messages will come from
-*/
+/*
+ *	receiveMsg function is made to receive a message from the CAN network
+ *	@param ptr - a void pointer used to accept structs of data
+ */
 void *receiveMsg(void *ptr) {
-	printf("running in receiveMsg\n");
-	//int rID, int s
+
 	struct receiveIDargsStruct *receiveStruct = ptr;
 	int rID = receiveStruct->receiveIDinStruct;
 	int s = receiveStruct->sock;
 
 	struct can_frame frame;
+
+	// Control how long the following while loop takes
 	int loop = 1;
 
+	// While looping read in CAN frames, if it matches a certain ID is an option aswell
 	while(loop) {
 		if(read(s, &frame, sizeof(struct can_frame)) > 0/* && (frame.can_id & 0x1fffffffu) == rID*/) {
 			printf("===========" "\x1b[32m" "RECEIVED" "\x1b[0m" "==========\n");
 			printf("%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X\n", frame.can_id & 0x1fffffffu, frame.can_dlc, // 29 bit CAN ID
 				frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
 				frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
+
 			loop = 0;
+
+			// Stop the timer
 			timer(receiveStruct->endTime);
 		}
 	}
-
-	//return 0;
 }
 
 int main(int argc, char *argv[]) {
 
-	//cSAR can0 send receive
-	//char progname[] = "cSAR";
+	// Check the amount of arguments
 	if (argc != 4) {
 		printUsage("cSAR");
 		return 1;
 	}
 
-	char *sendID = argv[2];				// Take the 2nd argument as a string as it later gets processed into the parts needed.
+	// Take the 2nd argument as a string as it later gets processed into the parts needed.
+	char *sendID = argv[2];	
 
+	// Take the 3rd argument and make it a hex value.
 	int receiveID;
-	sscanf(argv[3], "%x", &receiveID); // Take the 3rd argument and make it a hex value.
+	sscanf(argv[3], "%x", &receiveID);
 
 
 	// Boiler plate socket creation
@@ -256,7 +294,8 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_can addr;
 	struct ifreq ifr;
 
-	const char *ifname = argv[1];			// Interface name from 1st argument
+	// Interface name from 1st argument
+	const char *ifname = argv[1];
 
 	if((soc = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
 		perror("Error while opening socket");
@@ -274,7 +313,7 @@ int main(int argc, char *argv[]) {
 		return -2;
 	}
 
-	// Passing multiple arguments with pthread is awkward
+	// Fill the structure with the relevant information
 	sendStruct.sendIDinStruct = sendID;
 	sendStruct.sock = soc;
 	sendStruct.beginTime = malloc(sizeof(long)); 
@@ -284,42 +323,32 @@ int main(int argc, char *argv[]) {
 	receiveStruct.endTime = malloc(sizeof(long)); 
 
 
-
-	// timer(begin);
-	// //sleep(1);
-	// timer(end);
-
-
-	
-
-
 	//Create threads as both functions need to be running at the same time.
 	pthread_t threadSEND, threadREC; //Don't forget the -pthread flag when compiling with gcc
 
 
-	// make threads
-	//pthread_create(&threadTIME, NULL, recordTime, "2");
+	// Make threads
+	// Running the receive function as it'll be ready and waiting after the frame from send has been sent
     pthread_create(&threadREC, NULL, receiveMsg, &receiveStruct);
-    //sleep(3);
     pthread_create(&threadSEND, NULL, sendMsg, &sendStruct);
 
-
-
-    // wait for them to finish
+    // Wait for threads to finish
     pthread_join(threadREC, NULL);
-    pthread_join(threadSEND, NULL); 
-    //pthread_join(threadTIME, NULL);
+    pthread_join(threadSEND, NULL);
 
-	long duration = *(receiveStruct.endTime)-*(sendStruct.beginTime);
-
+    // Work out the time difference from when the timer ended to when it started
+	long duration = *(receiveStruct.endTime) - *(sendStruct.beginTime);
+	// Convert that difference into seconds by dividing by 10^9
 	double durSec = ((double)duration)/1e9;
 
-	printf("begin = %.9ld\n", *(sendStruct.beginTime));
-	printf("end = %.9ld\n", *(receiveStruct.endTime));
-	printf("duration = %.9ld\n", duration);
-	printf("duration = %.8f\n",durSec);
+	// Print information (also so useful for debugging left commented out - begin and end will be from EPOCH)
+	printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
+	// printf("begin = %.9ld\n", *(sendStruct.beginTime));
+	// printf("end = %.9ld\n", *(receiveStruct.endTime));
+	// printf("duration = %.9ld\n", duration);
+	printf("%.10f seconds\n",durSec);
 
-	
+	// Free previously malloc'd items
 	free(receiveStruct.endTime);
 	free(sendStruct.beginTime);
 
