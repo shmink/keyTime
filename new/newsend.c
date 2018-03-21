@@ -27,7 +27,7 @@
 
 
 /*
-	[X] function for sending 
+	[X] function for sending
 	[X] function for recieving
 	[X] main function (args)
 	[X] multi thread send and receive functions, maybe timer?
@@ -211,7 +211,7 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
  */
 void *sendMsg(void *ptr) {
 
-	struct sendIDargsStruct *sendStruct = ptr;
+	struct canInfoStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
 	int s = sendStruct->sock;
 
@@ -235,10 +235,10 @@ void *sendMsg(void *ptr) {
 	// Print out the information
 	printf("=============" "\x1b[32m" "SENT" "\x1b[0m" "============\n");
 	printf("%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X\n", frame.can_id & 0x1fffffffu, frame.len, // 29 bit CAN ID
-		frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
+		frame.data[0], frame.data[1], frame.data[2], frame.data[3],
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
-	
-	
+
+
 }
 
 /*
@@ -247,24 +247,35 @@ void *sendMsg(void *ptr) {
  */
 void *receiveMsg(void *ptr) {
 
-	struct receiveIDargsStruct *receiveStruct = ptr;
+	printf("at the top of receive message\n");
+	struct canInfoStruct *receiveStruct = ptr;
 	int rID = receiveStruct->receiveIDinStruct;
 	int s = receiveStruct->sock;
 
 	struct can_frame frame;
 
 	// Control how long the following while loop takes
-	int loop = 1;
+	int loop = receiveStruct->loop;
 
 	// While looping read in CAN frames, if it matches a certain ID is an option aswell
 	while(loop) {
 		if(read(s, &frame, sizeof(struct can_frame)) > 0 && (frame.can_id & 0x1fffffffu) == rID) {
 			printf("===========" "\x1b[32m" "RECEIVED" "\x1b[0m" "==========\n");
 			printf("%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X\n", frame.can_id & 0x1fffffffu, frame.can_dlc, // 29 bit CAN ID
-				frame.data[0], frame.data[1], frame.data[2], frame.data[3], 
+				frame.data[0], frame.data[1], frame.data[2], frame.data[3],
 				frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 
-			//loop = 0;
+			// Add data to struct
+			receiveStruct->cdata[0] = frame.data[0];
+			receiveStruct->cdata[1] = frame.data[1];
+			receiveStruct->cdata[2] = frame.data[2];
+			receiveStruct->cdata[3] = frame.data[3];
+			receiveStruct->cdata[4] = frame.data[4];
+			receiveStruct->cdata[5] = frame.data[5];
+			receiveStruct->cdata[6] = frame.data[6];
+			receiveStruct->cdata[7] = frame.data[7];
+
+			loop = 0;
 
 			// Stop the timer
 			timer(receiveStruct->endTime);
@@ -273,24 +284,29 @@ void *receiveMsg(void *ptr) {
 }
 
 int main(int argc, char *argv[]) {
-
+	// cSAR can0 send receive filename
+	// ############ARGS#############
 	// Check the amount of arguments
-	if (argc != 4) {
+	if (argc != 5) {
 		printUsage("cSAR");
 		return 1;
 	}
 
-	// Take the 2nd argument as a string as it later gets processed into the parts needed.
-	char *sendID = argv[2];	
+	char *sendTo = argv[2];
+	printf("send to = %s\n", sendTo);
 
+	printf("running\n");
+	// Take the 2nd argument as a string as it later gets processed into the parts needed.
+	// char *sendID1 = "18DA40F1#021002";
 	// Take the 3rd argument and make it a hex value.
 	int receiveID;
 	sscanf(argv[3], "%x", &receiveID);
 
 
+	// ##########SOCKET############
 	// Boiler plate socket creation
 	int soc;
-	int nbytes;
+	// int nbytes;
 	struct sockaddr_can addr;
 	struct ifreq ifr;
 
@@ -313,44 +329,62 @@ int main(int argc, char *argv[]) {
 		return -2;
 	}
 
-	// Fill the structure with the relevant information
-	sendStruct.sendIDinStruct = sendID;
-	sendStruct.sock = soc;
-	sendStruct.beginTime = malloc(sizeof(long)); 
+	// ############PROG MODE################
+	struct canInfoStruct first;
+	first.sendIDinStruct = strcat(sendTo, "#021002"); // put into prog mode
+	printf("sendIDinStruct = %s\n", first.sendIDinStruct);
+	first.sock = soc;
+	printf("after adding sock to struct\n");
+	sendMsg(&first); //TODO: Seg fault here, doesn't even make it to the first line of the function.
+	printf("after prog mode\n");
+	sleep(0.5); 															// sleep just for a bit to make sure the ECU is ready might take this out if possible.
+	// ##############SEED REQUEST##############
 
-	receiveStruct.receiveIDinStruct = receiveID;
-	receiveStruct.sock = soc;
-	receiveStruct.endTime = malloc(sizeof(long)); 
+	// ##########STRUCTS################
+	// Fill the structure with the relevant information (all in one struct now)
+	struct canInfoStruct cis;
+	// Send based information
+	cis.sendIDinStruct = strcat(sendTo, "#022701");
+	cis.sock = soc;
+	cis.beginTime = malloc(sizeof(long));
 
+	// Receive based information
+	cis.receiveIDinStruct = receiveID;
+	cis.sock = soc;
+	cis.endTime = malloc(sizeof(long));
 
+	// ##########THREADS###############
 	//Create threads as both functions need to be running at the same time.
 	pthread_t threadSEND, threadREC; //Don't forget the -pthread flag when compiling with gcc
 
-
 	// Make threads
 	// Running the receive function as it'll be ready and waiting after the frame from send has been sent
-    pthread_create(&threadREC, NULL, receiveMsg, &receiveStruct);
-    pthread_create(&threadSEND, NULL, sendMsg, &sendStruct);
+  pthread_create(&threadREC, NULL, receiveMsg, &cis);
+  pthread_create(&threadSEND, NULL, sendMsg, &cis);
 
-    // Wait for threads to finish
-    pthread_join(threadREC, NULL);
-    pthread_join(threadSEND, NULL);
+  // Wait for threads to finish
+  pthread_join(threadREC, NULL);
+  pthread_join(threadSEND, NULL);
 
-    // Work out the time difference from when the timer ended to when it started
-	long duration = *(receiveStruct.endTime) - *(sendStruct.beginTime);
-	// Convert that difference into seconds by dividing by 10^9
-	double durSec = ((double)duration)/1e9;
+	makeCSV(argv[4], &cis);
 
-	// Print information (also so useful for debugging left commented out - begin and end will be from EPOCH)
-	printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
-	// printf("begin = %.9ld\n", *(sendStruct.beginTime));
-	// printf("end = %.9ld\n", *(receiveStruct.endTime));
-	// printf("duration = %.9ld\n", duration);
-	printf("%.10f seconds\n\n",durSec);
+	// // ###########TIME################
+	// // Work out the time difference from when the timer ended to when it started
+	// long duration = *(cis.endTime) - *(cis.beginTime);
+	// // Convert that difference into seconds by dividing by 10^9
+	// double durSec = ((double)duration)/1e9;
+	//
+	// // Print information (also so useful for debugging left commented out - begin and end will be from EPOCH)
+	// printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
+	// // printf("begin = %.9ld\n", *(sendStruct.beginTime));
+	// // printf("end = %.9ld\n", *(receiveStruct.endTime));
+	// // printf("duration = %.9ld\n", duration);
+	// printf("%.10f seconds\n\n",durSec);
 
+	//#############CLEANUP#############
 	// Free previously malloc'd items
-	free(receiveStruct.endTime);
-	free(sendStruct.beginTime);
+	free(cis.endTime);
+	free(cis.beginTime);
 
 	return 0;
 }

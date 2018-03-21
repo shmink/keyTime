@@ -4,3 +4,4 @@ content.zip
 .idea*
 CMake*
 cmake-build-debug/
+new/cSAR
