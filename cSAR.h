@@ -15,3 +15,5 @@ struct receiveIDargsStruct receiveStruct;
 
 
 void timer(long *timer_val);
+
+// int randHex(void);

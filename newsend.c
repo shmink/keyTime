@@ -205,6 +205,27 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
 	return ret;
 }
 
+int randHex(void) {
+	int length;
+    char output[2];
+    char str[] = "0123456789ABCDEF";
+
+    /* Seed number for rand() */
+    srand((unsigned int) time(0) + getpid());
+    length = rand() % 15 + 8;
+ 
+    for (int i = 0; i < 2; ++i) {
+        output[i] = str[rand() % 16];
+        srand(rand());
+    }
+
+    int final = (int)strtol(output, NULL, 16);
+
+    // printf("%X\n", final);
+
+    return final;
+}
+
 /*
  *	sendMsg function is made to send a message to the CAN network
  *	@param ptr - a void pointer used to accept structs of data
@@ -225,6 +246,12 @@ void *sendMsg(void *ptr) {
 		fprintf(stderr, "Bad CAN format.\n");
 		return (void *)1;
 	}
+
+	// Fill the final 4 bytes with random data
+	frame.data[4] = randHex();
+	frame.data[5] = randHex();
+	frame.data[6] = randHex();
+	frame.data[7] = randHex();
 
 	// Write the data to the frame and send
 	nbytes = write(s, &frame, reqMTU);
