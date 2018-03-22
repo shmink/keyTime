@@ -5,3 +5,13 @@ content.zip
 CMake*
 cmake-build-debug/
 new/cSAR
+*.out
+*.csv
+from Jan/
+cSAR
+clock
+newclock
+newreceive
+newsend
+oldreceive
+pthread
