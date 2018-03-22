@@ -30,12 +30,12 @@ void makeCSV(char *filename, void *ptr) {
 	// Convert that difference into seconds by dividing by 10^9
 	double durSec = ((double)duration)/1e9;
 
-	fprintf(fp, "Seed, Time");
+	fprintf(fp, "Seed, Time\n");
 
 	fprintf(fp, "%02X %02X %02X %02X, %.10f seconds\n", data3, data4, data5, data6, durSec);
 
 	fclose(fp);
-	printf("\n\n%s.csv saved\n", filename);
+	printf("\n\n%s saved\n", filename);
 	// free(receiveStruct.endTime);
 	// free(receiveStruct.beginTime);
 }

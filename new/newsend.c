@@ -210,7 +210,7 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
  *	@param ptr - a void pointer used to accept structs of data
  */
 void *sendMsg(void *ptr) {
-
+	printf("at the top of sendMsg\n");
 	struct canInfoStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
 	int s = sendStruct->sock;
@@ -334,10 +334,12 @@ int main(int argc, char *argv[]) {
 	first.sendIDinStruct = strcat(sendTo, "#021002"); // put into prog mode
 	printf("sendIDinStruct = %s\n", first.sendIDinStruct);
 	first.sock = soc;
+	first.beginTime = malloc(sizeof(long));
+	first.beginTime = malloc(sizeof(long));
 	printf("after adding sock to struct\n");
 	sendMsg(&first); //TODO: Seg fault here, doesn't even make it to the first line of the function.
 	printf("after prog mode\n");
-	sleep(0.5); 															// sleep just for a bit to make sure the ECU is ready might take this out if possible.
+	sleep(0.5); 					// sleep just for a bit to make sure the ECU is ready might take this out if possible.
 	// ##############SEED REQUEST##############
 
 	// ##########STRUCTS################
@@ -359,12 +361,12 @@ int main(int argc, char *argv[]) {
 
 	// Make threads
 	// Running the receive function as it'll be ready and waiting after the frame from send has been sent
-  pthread_create(&threadREC, NULL, receiveMsg, &cis);
-  pthread_create(&threadSEND, NULL, sendMsg, &cis);
+	pthread_create(&threadREC, NULL, receiveMsg, &cis);
+	pthread_create(&threadSEND, NULL, sendMsg, &cis);
 
-  // Wait for threads to finish
-  pthread_join(threadREC, NULL);
-  pthread_join(threadSEND, NULL);
+	// Wait for threads to finish
+	pthread_join(threadREC, NULL);
+	pthread_join(threadSEND, NULL);
 
 	makeCSV(argv[4], &cis);
 
