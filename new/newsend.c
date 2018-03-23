@@ -287,7 +287,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	char *sendTo = argv[2];
+	char *sendTo = malloc(sizeof(char) * 16); //this val
+	strcpy(sendTo,argv[2]);
 	// Take the 2nd argument as a string as it later gets processed into the parts needed.
 	// char *sendID1 = "18DA40F1#021002";
 	// Take the 3rd argument and make it a hex value.
@@ -312,9 +313,9 @@ int main(int argc, char *argv[]) {
 	// Fill the structure with the relevant information (all in one struct now)
 	struct canInfoStruct seedRequest;
 	// Send based information
-	// printf("before strcat = %s\n", filename);
+	printf("before strcat = %s\n", filename);
 	seedRequest.sendIDinStruct = strcat(sendTo, "#022701");
-	// printf("after strcat = %s\n", filename); // no matter what the filename variable value is it gets changed to 2701?
+	printf("after strcat = %s\n", filename); // no matter what the filename variable value is it gets changed to 2701?
 	// cis.sock = soc;
 	seedRequest.beginTime = malloc(sizeof(long));
 
