@@ -43,14 +43,14 @@ void progMode(int socket, char *sendID) {
 	progMode.sendIDinStruct = strcat(progSendID, "#021002"); // put into prog mode
 	progMode.sock = socket;
 	progMode.beginTime = malloc(sizeof(long));
-	progMode.beginTime = malloc(sizeof(long));
+	progMode.endTime = malloc(sizeof(long));
 
 	sendMsg(&progMode);
 	sleep(0.5); 	// sleep just for a bit to make sure the ECU is ready might take this out if possible.
 
-	// free(progSendID);
-	// free(progMode.endTime);
-	// free(progMode.beginTime);
+	free(progSendID);
+	free(progMode.endTime);
+	free(progMode.beginTime);
 
 }
 
@@ -94,10 +94,10 @@ int * seedRequest(int socket, char *sendID, int receiveID) {
 
 	return framedata;
 
-	// free(seedSendID);
-	// free(seedRequest.beginTime);
-	// free(seedRequest.endTime);
-	// free(framedata);
+	free(seedSendID);
+	free(seedRequest.beginTime);
+	free(seedRequest.endTime);
+	free(framedata);
 }
 
 /*
@@ -145,9 +145,9 @@ double keyTimeTaken(int socket, char *sendID, int receiveID) {
 
 	return durSec;
 
-	// free(keySendID);
-	// free(keyTime.beginTime);
-	// free(keyTime.endTime);
+	free(keySendID);
+	free(keyTime.beginTime);
+	free(keyTime.endTime);
 
 }
 
@@ -167,14 +167,14 @@ void resetMode(int socket, char *sendID) {
 	reset.sendIDinStruct = strcat(resetSendID, "#021101"); // put into reset mode
 	reset.sock = socket;
 	reset.beginTime = malloc(sizeof(long));
-	reset.beginTime = malloc(sizeof(long));
+	reset.endTime = malloc(sizeof(long));
 
 	sendMsg(&reset);
 	sleep(0.5); 	// sleep just for a bit to make sure the ECU is ready might take this out if possible.
 
-	// free(resetSendID);
-	// free(reset.beginTime);
-	// free(reset.endTime);
+	free(resetSendID);
+	free(reset.beginTime);
+	free(reset.endTime);
 }
 
 int main(int argc, char *argv[]) {
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
 	fclose(fp);
 	printf("\n\n%s saved\n", filename);
 
-	// free(sendTo);
+	free(sendTo);
 
 	return 0;
 }
