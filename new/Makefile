@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -pthread
 
-all: newsend.c lib.c
-	$(CC) $(CFLAGS) newsend.c lib.c -o cSAR
+all: keyTime.c lib.c
+	$(CC) $(CFLAGS) keyTime.c lib.c -o keyTime
 
 clean:
-	rm cSAR
+	rm keyTime

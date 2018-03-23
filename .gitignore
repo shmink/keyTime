@@ -15,3 +15,6 @@ newreceive
 newsend
 oldreceive
 pthread
+keyTime
+new/keyTime
+*.gch
