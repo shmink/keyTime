@@ -10,11 +10,6 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <linux/can/error.h>
@@ -39,13 +34,15 @@
  *	@param prg - string which will be the name of the program shoud it ever change.
  */
 void printUsage(char *prg) {
-	fprintf(stderr, "Usage: %s [interface] [sending ID#data] [receive ID]\n\n", prg);
+	fprintf(stderr, "Usage: %s [interface] [sending ID] [receive ID] [filename]\n\n", prg);
 	fprintf(stderr, "%s = CAN send and receive\n", prg);
-	fprintf(stderr, "Interface: can0 or vcan0 for example\n");
-	fprintf(stderr, "Sending: the CAN ID you want to send to followed by '#' followed by data\n");
-	fprintf(stderr, "Receive: the CAN ID you want to hear from - no ID is default\n");
+	fprintf(stderr, "%s is for testing timing leakage attacks on ECUs\n\n", prg);
+	fprintf(stderr, "Interface: can0 or vcan0 for example.\n");
+	fprintf(stderr, "Sending ID: The CAN ID you want to send to.\n");
+	fprintf(stderr, "Receive ID: The CAN ID you want to hear from.\n");
+	fprintf(stderr, "Filename: What you want to name the output file.\n");
 	fprintf(stderr, "\nExample:\n");
-	fprintf(stderr, "%s can0 18DA40F1#021001 18DAF140\n", prg);
+	fprintf(stderr, "%s can0 18DA40F1 18DAF140 test\n", prg);
 }
 
 /*
@@ -210,7 +207,7 @@ int parseFrame(char *cs, struct canfd_frame *cf) {
  *	@param ptr - a void pointer used to accept structs of data
  */
 void *sendMsg(void *ptr) {
-	printf("at the top of sendMsg\n");
+
 	struct canInfoStruct *sendStruct = ptr;
 	char *sID = sendStruct->sendIDinStruct;
 	int s = sendStruct->sock;
@@ -238,7 +235,6 @@ void *sendMsg(void *ptr) {
 		frame.data[0], frame.data[1], frame.data[2], frame.data[3],
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 
-
 }
 
 /*
@@ -247,7 +243,6 @@ void *sendMsg(void *ptr) {
  */
 void *receiveMsg(void *ptr) {
 
-	printf("at the top of receive message\n");
 	struct canInfoStruct *receiveStruct = ptr;
 	int rID = receiveStruct->receiveIDinStruct;
 	int s = receiveStruct->sock;
@@ -255,7 +250,7 @@ void *receiveMsg(void *ptr) {
 	struct can_frame frame;
 
 	// Control how long the following while loop takes
-	int loop = receiveStruct->loop;
+	int loop = 1; //receiveStruct->loop;
 
 	// While looping read in CAN frames, if it matches a certain ID is an option aswell
 	while(loop) {
@@ -275,7 +270,7 @@ void *receiveMsg(void *ptr) {
 			receiveStruct->cdata[6] = frame.data[6];
 			receiveStruct->cdata[7] = frame.data[7];
 
-			loop = 0;
+			loop -= 1;
 
 			// Stop the timer
 			timer(receiveStruct->endTime);
@@ -293,67 +288,40 @@ int main(int argc, char *argv[]) {
 	}
 
 	char *sendTo = argv[2];
-	printf("send to = %s\n", sendTo);
-
-	printf("running\n");
 	// Take the 2nd argument as a string as it later gets processed into the parts needed.
 	// char *sendID1 = "18DA40F1#021002";
 	// Take the 3rd argument and make it a hex value.
 	int receiveID;
 	sscanf(argv[3], "%x", &receiveID);
 
+	char *filename = argv[4];
 
-	// ##########SOCKET############
-	// Boiler plate socket creation
-	int soc;
-	// int nbytes;
-	struct sockaddr_can addr;
-	struct ifreq ifr;
-
-	// Interface name from 1st argument
-	const char *ifname = argv[1];
-
-	if((soc = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
-		perror("Error while opening socket");
-		return -1;
-	}
-
-	strcpy(ifr.ifr_name, ifname);
-	ioctl(soc, SIOCGIFINDEX, &ifr);
-
-	addr.can_family  = AF_CAN;
-	addr.can_ifindex = ifr.ifr_ifindex;
-
-	if(bind(soc, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-		perror("Error in socket bind");
-		return -2;
-	}
+	int soc = createSocket(argv[1]);
 
 	// ############PROG MODE################
 	struct canInfoStruct first;
 	first.sendIDinStruct = strcat(sendTo, "#021002"); // put into prog mode
-	printf("sendIDinStruct = %s\n", first.sendIDinStruct);
 	first.sock = soc;
 	first.beginTime = malloc(sizeof(long));
 	first.beginTime = malloc(sizeof(long));
-	printf("after adding sock to struct\n");
-	sendMsg(&first); //TODO: Seg fault here, doesn't even make it to the first line of the function.
-	printf("after prog mode\n");
-	sleep(0.5); 					// sleep just for a bit to make sure the ECU is ready might take this out if possible.
+	sendMsg(&first);
+	sleep(0.5); 	// sleep just for a bit to make sure the ECU is ready might take this out if possible.
+	free(first.endTime);
+	free(first.beginTime);
 	// ##############SEED REQUEST##############
-
-	// ##########STRUCTS################
 	// Fill the structure with the relevant information (all in one struct now)
-	struct canInfoStruct cis;
+	struct canInfoStruct seedRequest;
 	// Send based information
-	cis.sendIDinStruct = strcat(sendTo, "#022701");
-	cis.sock = soc;
-	cis.beginTime = malloc(sizeof(long));
+	// printf("before strcat = %s\n", filename);
+	seedRequest.sendIDinStruct = strcat(sendTo, "#022701");
+	// printf("after strcat = %s\n", filename); // no matter what the filename variable value is it gets changed to 2701?
+	// cis.sock = soc;
+	seedRequest.beginTime = malloc(sizeof(long));
 
 	// Receive based information
-	cis.receiveIDinStruct = receiveID;
-	cis.sock = soc;
-	cis.endTime = malloc(sizeof(long));
+	seedRequest.receiveIDinStruct = receiveID;
+	seedRequest.sock = soc;
+	seedRequest.endTime = malloc(sizeof(long));
 
 	// ##########THREADS###############
 	//Create threads as both functions need to be running at the same time.
@@ -361,14 +329,61 @@ int main(int argc, char *argv[]) {
 
 	// Make threads
 	// Running the receive function as it'll be ready and waiting after the frame from send has been sent
-	pthread_create(&threadREC, NULL, receiveMsg, &cis);
-	pthread_create(&threadSEND, NULL, sendMsg, &cis);
+	pthread_create(&threadREC, NULL, receiveMsg, &seedRequest);
+	pthread_create(&threadSEND, NULL, sendMsg, &seedRequest);
 
 	// Wait for threads to finish
 	pthread_join(threadREC, NULL);
 	pthread_join(threadSEND, NULL);
 
-	makeCSV(argv[4], &cis);
+	// Saving the seed to be printed later.
+	int framedata[4] = {seedRequest.cdata[3], seedRequest.cdata[4], seedRequest.cdata[5], seedRequest.cdata[6]};
+
+	// free(seedRequest.endTime);
+	// free(seedRequest.beginTime);
+	// Send based information
+	// printf("before strcat = %s\n", filename);
+	struct canInfoStruct keyTime;
+	keyTime.sendIDinStruct = strcat(sendTo, "#06270200000000");
+	keyTime.receiveIDinStruct = receiveID;
+	keyTime.sock = soc;
+	keyTime.beginTime = malloc(sizeof(long));
+	keyTime.endTime = malloc(sizeof(long));
+	// printf("after strcat = %s\n", filename); // no matter what the filename variable value is it gets changed to 2701?
+	// cis.sock = soc;
+	// cis.beginTime = malloc(sizeof(long));
+
+	// Receive based information
+	// cis.receiveIDinStruct = receiveID;
+	// cis.sock = soc;
+	// cis.endTime = malloc(sizeof(long));
+
+	// ##########THREADS###############
+	//Create threads as both functions need to be running at the same time.
+	pthread_t threadSEND2, threadREC2; //Don't forget the -pthread flag when compiling with gcc
+
+	// Make threads
+	// Running the receive function as it'll be ready and waiting after the frame from send has been sent
+	pthread_create(&threadREC2, NULL, receiveMsg, &keyTime);
+	pthread_create(&threadSEND2, NULL, sendMsg, &keyTime);
+
+	// Wait for threads to finish
+	pthread_join(threadREC2, NULL);
+	pthread_join(threadSEND2, NULL);
+
+
+	printf("filename = %s\n", filename);
+	// ###########TIME################
+	// Work out the time difference from when the timer ended to when it started
+	long duration = *(keyTime.endTime) - *(keyTime.beginTime);
+	printf("end = %ld, begin = %ld\n", *keyTime.endTime, *keyTime.beginTime);
+	// Convert that difference into seconds by dividing by 10^9
+	double durSec = ((double)duration)/1e9;
+
+
+
+
+	makeCSV(filename, framedata, durSec); // this won't include the seed
 
 	// // ###########TIME################
 	// // Work out the time difference from when the timer ended to when it started
@@ -380,13 +395,11 @@ int main(int argc, char *argv[]) {
 	// printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
 	// // printf("begin = %.9ld\n", *(sendStruct.beginTime));
 	// // printf("end = %.9ld\n", *(receiveStruct.endTime));
-	// // printf("duration = %.9ld\n", duration);
-	// printf("%.10f seconds\n\n",durSec);
+	printf("duration = %.9ld\n", duration);
+	printf("%.10f seconds\n\n",durSec);
 
 	//#############CLEANUP#############
 	// Free previously malloc'd items
-	free(cis.endTime);
-	free(cis.beginTime);
 
 	return 0;
 }

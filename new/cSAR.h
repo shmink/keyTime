@@ -13,4 +13,6 @@ struct canInfoStruct sendStruct;
 
 void timer(long *timer_val);
 
-void makeCSV(char *filename, void *ptr);
+void makeCSV(char *filename, int data[], double time);
+
+int createSocket(char *interface);
