@@ -52,6 +52,7 @@ int createSocket(char *interface) {
 	strcpy(ifr.ifr_name, ifname);
 	ioctl(s, SIOCGIFINDEX, &ifr);
 
+  bzero(&addr,sizeof(struct sockaddr_can)); //zero out the struct
 	addr.can_family  = AF_CAN;
 	addr.can_ifindex = ifr.ifr_ifindex;
 

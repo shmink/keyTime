@@ -92,12 +92,13 @@ int * seedRequest(int socket, char *sendID, int receiveID) {
 	framedata[2] = seedRequest.cdata[5];
 	framedata[3] = seedRequest.cdata[6];
 
-	return framedata;
 
 	free(seedSendID);
 	free(seedRequest.beginTime);
 	free(seedRequest.endTime);
-	free(framedata);
+	// free(framedata); // How do you free when you need to return it? Is there a way to do this stack allocated?
+
+	return framedata;
 }
 
 /*
@@ -143,12 +144,12 @@ double keyTimeTaken(int socket, char *sendID, int receiveID) {
 	printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
 	printf("%lf seconds\n\n\n", durSec);
 
-	return durSec;
 
 	free(keySendID);
 	free(keyTime.beginTime);
 	free(keyTime.endTime);
 
+	return durSec;
 }
 
 /*
