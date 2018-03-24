@@ -78,7 +78,7 @@ void progMode(int socket, char *sendID) {
 
 	struct canInfoStruct progMode;
 
-	char *progSendID = malloc(16 * sizeof(char));
+	char *progSendID = malloc(25 * sizeof(char));
 	strcpy(progSendID, sendID);
 
 	progMode.sendIDinStruct = strcat(progSendID, "#021002"); // put into prog mode
@@ -104,7 +104,7 @@ void progMode(int socket, char *sendID) {
 int * seedRequest(int socket, char *sendID, int receiveID) {
 	struct canInfoStruct seedRequest;
 
-	char *seedSendID = malloc(16 * sizeof(char));
+	char *seedSendID = malloc(25 * sizeof(char));
 	strcpy(seedSendID, sendID);
 
 	seedRequest.sendIDinStruct = strcat(seedSendID, "#022701");
@@ -154,7 +154,7 @@ double keyTimeTaken(int socket, char *sendID, int receiveID) {
 
 	struct canInfoStruct keyTime;
 
-	char *keySendID = malloc(16 * sizeof(char));
+	char *keySendID = malloc(25 * sizeof(char));
 	strcpy(keySendID, sendID);
 
 	keyTime.sendIDinStruct = strcat(keySendID, "#06270200000000");
@@ -203,7 +203,7 @@ void resetMode(int socket, char *sendID) {
 
 	struct canInfoStruct reset;
 
-	char *resetSendID = malloc(16 * sizeof(char));
+	char *resetSendID = malloc(25 * sizeof(char));
 	strcpy(resetSendID, sendID);
 
 	reset.sendIDinStruct = strcat(resetSendID, "#021101"); // put into reset mode
@@ -220,7 +220,7 @@ void resetMode(int socket, char *sendID) {
 }
 
 int main(int argc, char *argv[]) {
-	// cSAR can0 send receive filename samples
+	// keyTime can0 send receive filename samples
 	// ############ARGS#############
 	// Check the amount of arguments
 	if (argc != 6) {
@@ -230,8 +230,10 @@ int main(int argc, char *argv[]) {
 
 	char *interfaceName = argv[1];
 
-	char *sendTo = malloc(sizeof(char) * 16);
-	strcpy(sendTo, argv[2]);
+	// char *sendTo = malloc(sizeof(char) * 8);
+	// strcpy(sendTo, argv[2]);
+
+	char *sendTo = argv[2];
 
 	int receiveID;
 	sscanf(argv[3], "%x", &receiveID);
@@ -277,7 +279,7 @@ int main(int argc, char *argv[]) {
 	fclose(fp);
 	printf("\n\n%s saved\n", filename);
 
-	free(sendTo);
+	// free(sendTo);
 
 	return 0;
 }

@@ -1,9 +1,11 @@
 txn427/
+charles\ report/
 papers/
 cmake-build-debug/
 old/
 from Jan/
 .idea/
+*.o
 *.gch
 *.out
 *.csv
