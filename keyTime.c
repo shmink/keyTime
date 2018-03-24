@@ -230,13 +230,21 @@ int main(int argc, char *argv[]) {
 
 	char *interfaceName = argv[1];
 
-	// char *sendTo = malloc(sizeof(char) * 8);
-	// strcpy(sendTo, argv[2]);
-
 	char *sendTo = argv[2];
+	// assert(strlen(sendTo) > 8);
+	if(strlen(sendTo) > 8) {
+		printf("Send ID was more than 8 digits\n");
+		return 0;
+	}
 
 	int receiveID;
+	// assert(strlen(argv[3]) > 8);
 	sscanf(argv[3], "%x", &receiveID);
+	if(strlen(sendTo) > 8) {
+		printf("Receive ID was more than 8 digits\n");
+		return 0;
+	}
+
 
 	char *filename = argv[4];
 
@@ -278,8 +286,6 @@ int main(int argc, char *argv[]) {
 
 	fclose(fp);
 	printf("\n\n%s saved\n", filename);
-
-	// free(sendTo);
 
 	return 0;
 }

@@ -25,11 +25,13 @@ The flow of the program goes as follows:
 ---
 
 ### Installation
-`git clone https://github.com/Shmink/CAN-bus-analyse-timing-leakage.git && cd CAN-bus-analyse-timing-leakage && make`
+* `git clone https://github.com/Shmink/CAN-bus-analyse-timing-leakage.git && cd CAN-bus-analyse-timing-leakage && make`
 
-If you need to test it virtually first you can run `chmod +x makeVCAN0.sh && ./makeVCAN0.sh` to save you some time.
+* There is a binary option availble under the `release` section of this repo if preferred. I'd still recommend the above however so you know it works for your set up. `chmod +x keyTime` after download.
 
-Optional: `sudo apt install can-utils` great tools to also help with any CAN related work.
+* If you need to test it virtually first you can run `chmod +x makeVCAN0.sh && ./makeVCAN0.sh` to save you some time.
+
+* Optional: `sudo apt install can-utils` great tools to also help with any CAN related work.
 
 ---
 
