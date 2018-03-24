@@ -1,20 +1,11 @@
 txn427/
 papers/
-*.zip
-.idea*
-CMake*
 cmake-build-debug/
-*cSAR
+old/
+from Jan/
+.idea/
+*.gch
 *.out
 *.csv
-from Jan/
-cSAR*
-clock
-newclock
-newreceive*
-newsend*
-oldreceive
-pthread
-keyTime
-new/keyTime
 *.gch
+keyTime
