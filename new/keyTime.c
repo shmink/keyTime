@@ -229,6 +229,8 @@ int main(int argc, char *argv[]) {
 
 		// Output seed and time taken to a CSV
 		fprintf(fp, "%02X %02X %02X %02X, %.10f seconds\n", seedBytes[0], seedBytes[1], seedBytes[2], seedBytes[3], timeTaken);
+
+		free(seedBytes);
 	}
 
 	fclose(fp);

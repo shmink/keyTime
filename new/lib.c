@@ -232,7 +232,6 @@ void *sendMsg(void *ptr) {
 	int s = sendStruct->sock;
 
 	int reqMTU;						// Maximum transfer unit
-	int nbytes;						// Total bytes
 	struct canfd_frame frame;		// Pack data into this frame
 
 	// Parse the CAN data and check it's the right length
@@ -243,7 +242,7 @@ void *sendMsg(void *ptr) {
 	}
 
 	// Write the data to the frame and send
-	nbytes = write(s, &frame, reqMTU);
+	write(s, &frame, reqMTU);
 
 	// Once the data has been sent start the timer
 	timer(sendStruct->beginTime);
@@ -254,6 +253,7 @@ void *sendMsg(void *ptr) {
 		frame.data[0], frame.data[1], frame.data[2], frame.data[3],
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 
+	return 0;
 }
 
 /*
@@ -295,4 +295,6 @@ void *receiveMsg(void *ptr) {
 			timer(receiveStruct->endTime);
 		}
 	}
+
+	return 0;
 }
