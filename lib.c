@@ -290,10 +290,22 @@ void *sendMsg(void *ptr) {
 	timer(sendStruct->beginTime);
 
 	// Print out the information
-	printf("=============" "\x1b[32m" "SENT" "\x1b[0m" "============\n");
-	printf("%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X\n", frame.can_id & 0x1fffffffu, frame.len, // 29 bit CAN ID
+	printf("\n=============" "\x1b[32m" "SENT" "\x1b[0m" "============");
+	printf("\n%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X", frame.can_id & 0x1fffffffu, frame.len, // 29 bit CAN ID
 		frame.data[0], frame.data[1], frame.data[2], frame.data[3],
 		frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
+
+	if((frame.data[0] == 0x02) && (frame.data[1] == 0x10))
+		printf("    - PUTTING INTO PROGMODE");
+
+	if((frame.data[0] == 0x02) && (frame.data[1] == 0x27))
+		printf("    - REQUEST A SEED");
+
+	if(frame.data[0] == 0x06)
+		printf("    - KEY SENT");
+
+	if(frame.data[1] == 0x11)
+		printf("    - RESET MODE\n\n");
 
 	return 0;
 }
@@ -310,33 +322,57 @@ void *receiveMsg(void *ptr) {
 
 	struct can_frame frame;
 
-	// Control how long the following while loop takes
-	int loop = 1; //receiveStruct->loop;
+	// TODO: Better alternative
+	int loop = 1;
 
 	// While looping read in CAN frames, if it matches a certain ID is an option aswell
 	while(loop) {
+		// If there is a packet. If the bit mask adds up. If it's not a 'wait, I'm entering prog mode' from the ECU.
 		if(read(s, &frame, sizeof(struct can_frame)) > 0 && (frame.can_id & 0x1fffffffu) == rID) {
-			printf("===========" "\x1b[32m" "RECEIVED" "\x1b[0m" "==========\n");
-			printf("%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X\n", frame.can_id & 0x1fffffffu, frame.can_dlc, // 29 bit CAN ID
+			printf("\n===========" "\x1b[32m" "RECEIVED" "\x1b[0m" "==========");
+			printf("\n%X - [%d] - %02X %02X %02X %02X %02X %02X %02X %02X", frame.can_id & 0x1fffffffu, frame.can_dlc, // 29 bit CAN ID
 				frame.data[0], frame.data[1], frame.data[2], frame.data[3],
 				frame.data[4], frame.data[5], frame.data[6], frame.data[7]);
 
-			// Add data to struct
-			receiveStruct->cdata[0] = frame.data[0];
-			receiveStruct->cdata[1] = frame.data[1];
-			receiveStruct->cdata[2] = frame.data[2];
-			receiveStruct->cdata[3] = frame.data[3];
-			receiveStruct->cdata[4] = frame.data[4];
-			receiveStruct->cdata[5] = frame.data[5];
-			receiveStruct->cdata[6] = frame.data[6];
-			receiveStruct->cdata[7] = frame.data[7];
+			// If we have received a seed
+			if((frame.data[0] == 0x06) && (frame.data[1] == 0x67) && (frame.data[2] == 0x01)) {
+				// Add data to struct
+				receiveStruct->cdata[0] = frame.data[0];
+				receiveStruct->cdata[1] = frame.data[1];
+				receiveStruct->cdata[2] = frame.data[2];
+				receiveStruct->cdata[3] = frame.data[3];
+				receiveStruct->cdata[4] = frame.data[4];
+				receiveStruct->cdata[5] = frame.data[5];
+				receiveStruct->cdata[6] = frame.data[6];
+				receiveStruct->cdata[7] = frame.data[7];
 
-			loop = 0;
+				printf("    - SEED RECEIVED");
+
+				return 0;
+			}
+			// If we have entered prog mode
+			if(frame.data[1] == 0x50) {
+				printf("    - NOW IN PROGMODE");
+				receiveStruct->cdata[1] = frame.data[1];
+
+				return 0;
+			}
+
+			// Expected response from ECU after we send a key
+			if(frame.data[2] == 0x27)
+				printf("    - ERROR RESPONSE");
+
+			// Expected response once the ECU has been rest
+			if(frame.data[1] == 0x51) {
+				printf("    - SUCCESS RESET");
+				receiveStruct->cdata[1] = frame.data[1];
+			}
 
 			// Stop the timer
 			timer(receiveStruct->endTime);
+
+			loop = 0;
 		}
 	}
-
 	return 0;
 }

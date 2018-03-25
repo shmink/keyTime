@@ -1,44 +1,3 @@
-/*
- * keyTime.c
- *
- * Copyright (c) 2002-2009 Volkswagen Group Electronic Research
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of Volkswagen nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * Alternatively, provided that this notice is retained in full, this
- * software may be distributed under the terms of the GNU General
- * Public License ("GPL") version 2, in which case the provisions of the
- // * GPL apply INSTEAD OF those given above.
- *
- * The provided data structures and external interfaces from this code
- * are not restricted to be used by modules with a GPL compatible license.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
- * DAMAGE.
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,7 +33,7 @@ void printUsage(char *prg) {
  * 	@param socket - CAN socket used to interface with CAN network
  * 	@param sendID - ID you want to send to
  */
-void progMode(int socket, char *sendID) {
+void progMode(int socket, char *sendID, int receiveID) {
 
 	struct canInfoStruct progMode;
 
@@ -82,17 +41,24 @@ void progMode(int socket, char *sendID) {
 	strcpy(progSendID, sendID);
 
 	progMode.sendIDinStruct = strcat(progSendID, "#021002"); // put into prog mode
+	progMode.receiveIDinStruct = receiveID;
 	progMode.sock = socket;
 	progMode.beginTime = malloc(sizeof(long));
 	progMode.endTime = malloc(sizeof(long));
 
 	sendMsg(&progMode);
-	sleep(0.5); 	// sleep just for a bit to make sure the ECU is ready might take this out if possible.
+
+	int i = 1;
+	while(i) {
+		receiveMsg(&progMode);
+		if(progMode.cdata[1] == 0x50) {
+			i = 0;
+		}
+	}
 
 	free(progSendID);
 	free(progMode.endTime);
 	free(progMode.beginTime);
-
 }
 
 /*
@@ -137,7 +103,6 @@ int * seedRequest(int socket, char *sendID, int receiveID) {
 	free(seedSendID);
 	free(seedRequest.beginTime);
 	free(seedRequest.endTime);
-	// free(framedata); // How do you free when you need to return it? Is there a way to do this stack allocated?
 
 	return framedata;
 }
@@ -182,8 +147,8 @@ double keyTimeTaken(int socket, char *sendID, int receiveID) {
 	// Convert that difference into seconds by dividing by 10^9
 	double durSec = ((double)duration)/1e9;
 
-	printf("=============" "\x1b[32m" "TIME" "\x1b[0m" "============\n");
-	printf("%lf seconds\n\n\n", durSec);
+	printf("\n=============" "\x1b[32m" "TIME" "\x1b[0m" "============");
+	printf("\n%lf seconds", durSec);
 
 
 	free(keySendID);
@@ -199,7 +164,7 @@ double keyTimeTaken(int socket, char *sendID, int receiveID) {
  * 	@param socket - CAN socket used to interface with CAN network
  * 	@param sendID - ID you want to send to
  */
-void resetMode(int socket, char *sendID) {
+void resetMode(int socket, char *sendID, int receiveID) {
 
 	struct canInfoStruct reset;
 
@@ -207,12 +172,24 @@ void resetMode(int socket, char *sendID) {
 	strcpy(resetSendID, sendID);
 
 	reset.sendIDinStruct = strcat(resetSendID, "#021101"); // put into reset mode
+	reset.receiveIDinStruct = receiveID;
 	reset.sock = socket;
 	reset.beginTime = malloc(sizeof(long));
 	reset.endTime = malloc(sizeof(long));
 
 	sendMsg(&reset);
-	sleep(0.5); 	// sleep just for a bit to make sure the ECU is ready might take this out if possible.
+	sleep(1); 	// sleep just for a bit to make sure the ECU is ready, I don't want to be doing this.
+
+	// TODO: Below is making the ECU freeze up. Needs more testing.
+	// printf("\nABOVE RESETMODE LOOP\n");
+	// int i = 1;
+	// while(i) {
+	// 	receiveMsg(&reset);
+	// 	if(reset.cdata[1] == 0x51) {
+	// 		printf("\nIN RESETMODE LOOP!\n");
+	// 		i = 0;
+	// 	}
+	// }
 
 	free(resetSendID);
 	free(reset.beginTime);
@@ -231,14 +208,12 @@ int main(int argc, char *argv[]) {
 	char *interfaceName = argv[1];
 
 	char *sendTo = argv[2];
-	// assert(strlen(sendTo) > 8);
 	if(strlen(sendTo) > 8) {
 		printf("Send ID was more than 8 digits\n");
 		return 0;
 	}
 
 	int receiveID;
-	// assert(strlen(argv[3]) > 8);
 	sscanf(argv[3], "%x", &receiveID);
 	if(strlen(sendTo) > 8) {
 		printf("Receive ID was more than 8 digits\n");
@@ -263,17 +238,13 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "Seed, Time\n");
 
 	for(int i = 0; i < samples; ++i) {
-		printf("\x1b[32m" "           ATTEMPT " "%d" "\x1b[0m" "\n", i+1);
-		// Reset the ECU as enough failed keys will lock you out for ~5 seconds.
-		// This should help circumvent it but not as efficient as it could be.
-		resetMode(soc, sendTo);
+		printf("\n" "\x1b[32m" "           ATTEMPT " "%d" "\x1b[0m", i+1);
 
 		// Put the ECU in programming mode
-		progMode(soc, sendTo);
+		progMode(soc, sendTo, receiveID);
 
 		// Send a seed request and save the seed
-		int *seedBytes;
-		seedBytes = seedRequest(soc, sendTo, receiveID);
+		int *seedBytes = seedRequest(soc, sendTo, receiveID);
 
 		// Send a key after the seed has arrived and time how long it takes to hear back from ECU
 		double timeTaken = keyTimeTaken(soc, sendTo, receiveID);
@@ -281,9 +252,14 @@ int main(int argc, char *argv[]) {
 		// Output seed and time taken to a CSV
 		fprintf(fp, "%02X %02X %02X %02X, %.10f seconds\n", seedBytes[0], seedBytes[1], seedBytes[2], seedBytes[3], timeTaken);
 
+		// Reset the ECU as enough failed keys will lock you out for ~5 seconds.
+		if((samples%2 == 0) && (samples > 0))
+			resetMode(soc, sendTo, receiveID);
+
 		free(seedBytes);
 	}
 
+	// Close file
 	fclose(fp);
 	printf("\n\n%s saved\n", filename);
 

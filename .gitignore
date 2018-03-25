@@ -4,6 +4,7 @@ papers/
 cmake-build-debug/
 old/
 from Jan/
+samples/
 .idea/
 *.o
 *.gch
