@@ -1,4 +1,4 @@
-# keyTime
+# keyTime [![Build Status](https://travis-ci.org/Shmink/CAN-bus-analyse-timing-leakage.svg?branch=master)](https://travis-ci.org/Shmink/CAN-bus-analyse-timing-leakage)
 *keyTime, analyse timing leakage from ECUs over the CAN bus network* :car:
 
 ---
