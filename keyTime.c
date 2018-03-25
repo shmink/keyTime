@@ -237,7 +237,8 @@ int main(int argc, char *argv[]) {
 	// Create headers in the file
 	fprintf(fp, "Seed, Time\n");
 
-	for(int i = 0; i < samples; ++i) {
+	int i;
+	for(i = 0; i < samples; ++i) {
 		printf("\n" "\x1b[32m" "           ATTEMPT " "%d" "\x1b[0m", i+1);
 
 		// Put the ECU in programming mode
