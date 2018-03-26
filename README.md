@@ -43,8 +43,8 @@ The flow of the program goes as follows:
 ### My set up
 * This was installed onto a Raspberry Pi 3 Model B (@ 1.2 GHz) with a PiCAN2 CAN-Bus board.
 * The OS for it was Raspbian Stretch Lite and the kernel patched to Real-Time Linux kernel (Went from a max latency of ~500us to 72us)
-* Wired from the 4 screw terminal on the PiCAN2 board to the pins of the OBD-2 port (Pins: 6, 14, 5) ???
-* The ECU was from a Fiat Punto ????. The bitrate of which was 500 kb/s.
+* Wired from the 4 screw terminal on the PiCAN2 board to the pins of the OBD-2 port (Pins: 5, 6, 14)
+* The ECU was from a Fiat Punto. The ECU was the body control module. The bitrate of which was 500 kb/s.
 
 ---
 
@@ -55,4 +55,4 @@ The flow of the program goes as follows:
 ---
 
 ### Contributions
-Any future features or similar suggestions would be appreacited. Any forks of the project would be greatly appreacited.
+Any future features or similar suggestions would be appreciated. Any forks of the project would be greatly appreciated.
