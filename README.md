@@ -1,3 +1,4 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/7981c3ac06c34ca4b5f653f7887ab03f)](https://app.codacy.com/app/Shmink/CAN-bus-analyse-timing-leakage?utm_source=github.com&utm_medium=referral&utm_content=Shmink/CAN-bus-analyse-timing-leakage&utm_campaign=Badge_Grade_Dashboard)
 # keyTime [![Build Status](https://travis-ci.org/Shmink/CAN-bus-analyse-timing-leakage.svg?branch=master)](https://travis-ci.org/Shmink/CAN-bus-analyse-timing-leakage)
 *keyTime, analyse timing leakage from ECUs over the CAN bus network* :car:
 
