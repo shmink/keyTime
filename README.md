@@ -1,4 +1,4 @@
-# keyTime [![Build Status](https://travis-ci.org/Shmink/CAN-bus-analyse-timing-leakage.svg?branch=master)](https://travis-ci.org/Shmink/CAN-bus-analyse-timing-leakage) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7981c3ac06c34ca4b5f653f7887ab03f)](https://app.codacy.com/app/Shmink/CAN-bus-analyse-timing-leakage?utm_source=github.com&utm_medium=referral&utm_content=Shmink/CAN-bus-analyse-timing-leakage&utm_campaign=Badge_Grade_Dashboard)
+# keyTime [![Build Status](https://travis-ci.org/shmink/keyTime.svg?branch=master)](https://travis-ci.org/shmink/keyTime) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/7981c3ac06c34ca4b5f653f7887ab03f)](https://app.codacy.com/app/Shmink/CAN-bus-analyse-timing-leakage?utm_source=github.com&utm_medium=referral&utm_content=Shmink/CAN-bus-analyse-timing-leakage&utm_campaign=Badge_Grade_Dashboard)
 
 _keyTime, analyse timing leakage from ECUs over the CAN bus network_ :car:
 
@@ -49,7 +49,7 @@ The flow of the program goes as follows:
 ### My set up
 
 -   This was installed onto a Raspberry Pi 3 Model B (@ 1.2 GHz) with a PiCAN2 CAN-Bus board.
--   The OS for it was Raspbian Stretch Lite and the kernel patched to Real-Time Linux kernel (Went from a max latency of ~500us to 72us)
+-   The OS for it was Raspbian Stretch Lite and the kernel patched to Real-Time Linux kernel (Went from a max latency of ~500μs to 72μs)
 -   Wired from the 4 screw terminal on the PiCAN2 board to the pins of the OBD-2 port (Pins: 5, 6, 14)
 -   The ECU was from a Fiat Punto. The ECU was the body control module. The bitrate of which was 500 kb/s.
 
